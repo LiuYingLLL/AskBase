@@ -126,14 +126,14 @@ async def execute_extracting(task_id: int):
                     rh = _record_hash(rec, dedup_keys, field_names)
                     rec_url = _pick_field(rec, "url", "link", "链接", "原文链接") or page.url
                     # 详情页记录（rec_url == page_url，完整正文）即使 hash 与列表页记录冲突也落库，
-                    # 否则列表页先处理占住 url hash，详情页被 skip 导致完整正文丢失（school_articles 同步也被跳过）
+                    # 否则列表页先处理占住 url hash，详情页被 skip 导致完整正文丢失（crawled_items 同步也被跳过）
                     exists = await db.scalar(select(func.count()).select_from(CrawlResult).where(CrawlResult.task_id==task_id, CrawlResult.record_hash==rh, CrawlResult.status=="VALID"))
                     if exists and exists > 0 and not _same_page(rec_url, page.url): skipped+=1; continue
                     r = CrawlResult(task_id=task_id, url=page.url, page_id=page.id, data_json=rec, record_hash=rh, status="VALID", extracted_at=datetime.now())
                     db.add(r); await db.flush(); await db.refresh(r); valid+=1
                     summary = str(rec.get(field_names[0],""))[:60] if field_names else ""
                     await publish_result_new(task_id, r.id, summary)
-                    await _sync_to_school_articles(db, task, rec, page.url)
+                    await _sync_to_crawled_items(db, task, rec, page.url)
             else:
                 if not isinstance(data, dict) or not data:
                     invalid+=1; continue
@@ -145,7 +145,7 @@ async def execute_extracting(task_id: int):
                 db.add(r); await db.flush(); await db.refresh(r); valid+=1
                 summary = str(data.get(field_names[0],""))[:60] if field_names else ""
                 await publish_result_new(task_id, r.id, summary)
-                await _sync_to_school_articles(db, task, data, page.url)
+                await _sync_to_crawled_items(db, task, data, page.url)
         task = await db.get(CrawlTask, task_id)
         if task:
             stats = safe_json(task.stats_json) or {}
@@ -235,7 +235,7 @@ def _record_hash(data, dedup_keys, field_names):
     return sha256_hex("|".join(parts))
 
 
-# ---------- school_articles 通用文章落库（任务标题 → 来源名） ----------
+# ---------- crawled_items 通用结构化落库（任务标题 → 来源名） ----------
 
 def _same_page(url_a: str, url_b: str) -> bool:
     """判断两个 URL 是否指向同一页面（http/https、www、跟踪参数、参数顺序差异忽略）
@@ -257,8 +257,8 @@ def _pick_field(rec: dict, *names) -> str:
     return ""
 
 
-async def _sync_to_school_articles(db, task, rec: dict, page_url: str):
-    """把单条提取结果同步写入 school_articles（按 url_hash 去重，失败不阻断主流程）
+async def _sync_to_crawled_items(db, task, rec: dict, page_url: str):
+    """把单条提取结果同步写入 crawled_items（按 url_hash 去重，失败不阻断主流程）
 
     字段映射（兼容中英文 schema）：
       title        ← title/标题
@@ -298,7 +298,7 @@ async def _sync_to_school_articles(db, task, rec: dict, page_url: str):
         # url_hash 用 canonical_url 归一（http/https、www、跟踪参数差异视为同一条）
         url_hash = sha256_hex(canonical_url(rec_url))
         await db.execute(sa_text("""
-            INSERT INTO school_articles (source, title, content, publish_date, url, url_hash)
+            INSERT INTO crawled_items (source, title, content, publish_date, url, url_hash)
             VALUES (:source, :title, :content, :publish_date, :url, :url_hash)
             ON DUPLICATE KEY UPDATE
               source = VALUES(source),
@@ -314,6 +314,6 @@ async def _sync_to_school_articles(db, task, rec: dict, page_url: str):
             "url_hash": url_hash,
         })
         await db.flush()
-        print(f"[Extractor] 已同步 school_articles: source={source} title={title[:30]}")
+        print(f"[Extractor] 已同步 crawled_items: source={source} title={title[:30]}")
     except Exception as e:
-        print(f"[Extractor] 同步 school_articles 失败(忽略): {e}")
+        print(f"[Extractor] 同步 crawled_items 失败(忽略): {e}")
