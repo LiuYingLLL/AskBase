@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     """应用全局配置"""
 
     # === 应用 ===
-    APP_NAME: str = "E-Commerce RAG Knowledge Base"
+    APP_NAME: str = "AskBase"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 
@@ -42,7 +42,9 @@ class Settings(BaseSettings):
 
     # === ChromaDB ===
     CHROMA_PERSIST_DIR: str = "./data/chromadb"
-    CHROMA_COLLECTION_NAME: str = "ecommerce_kb"
+    # 历史默认值曾是 ecommerce_kb（早期电商题材遗留）。注意：改这个默认值不会迁移已有集合，
+    # 已有向量数据仍存在旧名下，换名会导致检索不到；要改名需自行迁移数据。
+    CHROMA_COLLECTION_NAME: str = "askbase_kb"
 
     # === RAG 参数 ===
     CHUNK_SIZE: int = 800

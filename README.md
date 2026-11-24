@@ -258,7 +258,7 @@ npm run dev
 | `/api/kb/*` | 文档知识库管理 | admin |
 | `/api/data-sources` | MySQL 数据源管理 | admin |
 | `/api/knowledge-bases` | 知识库（文档/数据库）管理 | admin |
-| `/api/llm-models` | 大模型库管理 | admin |
+| `/api/models` | 大模型库管理 | admin |
 | `/api/skills` | 内置工具（技能）管理 | admin |
 | `/api/mcp-servers` | MCP 服务管理 | admin |
 | `/api/agents` | 智能体管理 | admin |
@@ -305,7 +305,7 @@ backend/venv/Scripts/python.exe backend/scripts/accept_citations.py  # 引用来
 
 本项目为练手示例，**默认配置仅适用于本地开发**，部署到任何可公开访问的环境前务必修改：
 
-- 系统管理员默认账号：`admin` / `123456`（见 `backend/app/config.py`、`backend/app/services/auth_service.py`）
+- 系统管理员默认账号：`admin` / `123456`（见 `backend/app/config.py`、`backend/app/services/auth_service.py`）。注意 `seed_admin` 每次启动都会把 admin 密码重置为 `ADMIN_PASSWORD` 的值，运行中改的密码重启后会被覆盖 —— 改密码请改 `backend/.env` 里的 `ADMIN_PASSWORD`。
 - 爬虫 MySQL 连接不再内置密码，需在 `backend/.env` 配置 `CRAWLER_DB_PASSWORD`（见 `backend/app/crawler/config.py`）
 
 修改方式（推荐用环境变量覆盖，不要直接改源码）：
@@ -320,5 +320,5 @@ CRAWLER_DB_PASSWORD=改成你的数据库密码
 其他建议：
 
 - **切勿提交 `backend/.env`**：该文件含真实密钥，已被 `.gitignore` 忽略；如误提交到公开仓库，请立即轮换对应密钥，因为公开历史无法彻底抹除。
-- 建议在 GitHub 仓库 **Settings → Security** 开启 **Secret scanning** 与 **Push protection**，防止未来误推密钥。
+- GitHub 仓库已开启 **Secret scanning** 与 **Push protection**，推送含密钥的提交会被直接拒绝；被拒时先检查提交内容，不要先怀疑网络或权限。
 - 绑定 MySQL 等知识库数据源时，请使用**只读账号**，降低 Text-to-SQL 执行风险。

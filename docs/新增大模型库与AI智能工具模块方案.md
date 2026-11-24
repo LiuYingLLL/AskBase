@@ -1,16 +1,17 @@
 # 新增「大模型库」与「AI 智能工具」模块方案
 
+> **历史方案，已废弃，勿作为实现依据。** 本文档是功能落地前写的设计稿，部分字段定义、API 路径、文件清单与最终实现不一致，且未随代码回写。它只对理解"为什么这么设计"有参考价值；要确认当前真实行为，以 `README.md`、`CONTEXT.md`、`docs/adr/` 和 `backend/`、`frontend/src/` 的实际代码为准。下文出现的 `api_key_encrypted` / `tool_ref_id` 等字段、`skills/handlers/*.py` 与 `backend/app/mcp/` 等文件路径均为早期设计，实际并不存在。
+
 > 目标：把当前硬编码在 `.env` 里的 LLM 配置，升级为后台可配置的「大模型库」；同时新增「AI 智能工具」模块，先支持内部 Skill，再支持外部 MCP 服务。智能体可像挂载知识库一样挂载模型和工具。
 
-## 实现状态（阶段 A / B / C 均已完成，代码未提交 git）
+## 实现状态（阶段 A / B / C 均已完成）
 
 | 阶段 | 状态 | 说明 |
 |------|------|------|
 | A 大模型库 | 已完成 | 后端 CRUD + 连通测试 + 设为默认；前端管理页；智能体可绑定模型 |
 | B 内部 Skill | 已完成 | 内置 4 个工具（web_search / kb_search / get_current_time / calculator）；对话链路支持 function calling |
-| C MCP 服务 | 已完成 | stdio / SSE 两种传输，工具发现与缓存；前端卡片管理 |
+| C MCP 服务 | 已完成 | stdio / SSE 两种传输，工具发现与缓存；前端只读展示（无新增入口，需直插 `mcp_servers` 表） |
 
-**尚未实测**：真实 LLM 下的工具触发链路、真实 MCP server 连接（需本地启动后端验证）。
 **依赖坑**：`mcp` 必须锁 `1.9.4`。装 2.x 会把 starlette 升到 1.6.0，与 `fastapi==0.115.6` 冲突。backend 环境执行 `pip install mcp==1.9.4`。
 
 ---

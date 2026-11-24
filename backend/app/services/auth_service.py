@@ -89,7 +89,7 @@ async def change_user_password(
 
 
 async def seed_admin(db: AsyncSession) -> None:
-    """种子管理员账户（admin/123456），仅在不存在时创建"""
+    """种子管理员账户：不存在则创建，已存在则每次启动都把密码重置为 ADMIN_PASSWORD"""
     from app.config import settings
 
     result = await db.execute(select(User).where(User.username == settings.ADMIN_USERNAME))

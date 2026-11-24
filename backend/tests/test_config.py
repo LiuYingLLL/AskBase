@@ -11,7 +11,7 @@ class TestSettings:
     def test_默认值_正确设置(self):
         """场景：检查关键默认配置项（不读 .env，验证代码默认值）"""
         defaults = Settings(_env_file=None)
-        assert defaults.APP_NAME == "E-Commerce RAG Knowledge Base"
+        assert defaults.APP_NAME == "AskBase"
         assert defaults.LLM_MODEL == "deepseek-chat"
         assert defaults.EMBEDDING_MODEL == "text-embedding-v3"
         assert defaults.LLM_TEMPERATURE == 0.3
@@ -77,6 +77,7 @@ class TestSettings:
         assert "aiosqlite" in settings.DATABASE_URL
 
     def test_ChromaDB_配置正确(self):
-        """场景：ChromaDB 持久化目录和集合名配置正确"""
-        assert settings.CHROMA_PERSIST_DIR == "./data/chromadb"
-        assert settings.CHROMA_COLLECTION_NAME == "ecommerce_kb"
+        """场景：ChromaDB 持久化目录和集合名代码默认值正确（不读 .env）"""
+        defaults = Settings(_env_file=None)
+        assert defaults.CHROMA_PERSIST_DIR == "./data/chromadb"
+        assert defaults.CHROMA_COLLECTION_NAME == "askbase_kb"
