@@ -2,12 +2,8 @@
 
 from sqlalchemy import String, Integer, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
+from app.models._utils import now_iso
 from app.database import Base
-from datetime import datetime
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class QAItem(Base):
@@ -18,8 +14,8 @@ class QAItem(Base):
     question: Mapped[str] = mapped_column(String(500), nullable=False, comment="问题")
     answer: Mapped[str] = mapped_column(Text, nullable=False, comment="答案")
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<QAItem(id={self.id}, kb_id={self.kb_id}, question='{self.question[:30]}')>"

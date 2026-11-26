@@ -6,13 +6,9 @@
 
 from sqlalchemy import String, Integer, Boolean, Index
 from sqlalchemy.orm import Mapped, mapped_column
+from app.models._utils import now_iso
 from app.database import Base
-from datetime import datetime
 from typing import Optional
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class LLMUsageLog(Base):
@@ -51,7 +47,7 @@ class LLMUsageLog(Base):
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="success")
     error_message: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
 
     def __repr__(self) -> str:
         return f"<LLMUsageLog(id={self.id}, agent='{self.agent_name}', tokens={self.total_tokens})>"

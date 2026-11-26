@@ -2,19 +2,15 @@
 
 from sqlalchemy import String, Integer, Boolean, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models._utils import now_iso
 from app.database import Base
 from typing import List, Optional, TYPE_CHECKING
-from datetime import datetime
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.knowledge_document import KnowledgeDocument
     from app.models.knowledge_base import KnowledgeBase
     from app.models.conversation import Conversation
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class Agent(Base):
@@ -37,8 +33,8 @@ class Agent(Base):
         comment="绑定的大模型 ID（NULL=系统默认）"
     )
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     # 关系：创建者、关联的知识库（多对多，粒度=知识库）、关联的会话
     creator: Mapped["User"] = relationship("User", back_populates="agents")

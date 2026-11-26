@@ -5,6 +5,7 @@ import { Card, Form, Input, Button, Typography, Alert, theme } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { requiredRule } from "../utils/tableForm";
 
 const { Title, Text } = Typography;
 
@@ -71,7 +72,7 @@ const RegisterPage: React.FC = () => {
           <Form.Item
             name="username"
             rules={[
-              { required: true, message: "请输入用户名" },
+              requiredRule("请输入用户名"),
               { min: 3, max: 50, message: "用户名长度 3-50 个字符" },
               { pattern: /^[a-zA-Z0-9_]+$/, message: "只能包含字母、数字和下划线" },
             ]}
@@ -81,7 +82,7 @@ const RegisterPage: React.FC = () => {
           <Form.Item
             name="password"
             rules={[
-              { required: true, message: "请输入密码" },
+              requiredRule("请输入密码"),
               { min: 6, message: "密码至少 6 个字符" },
             ]}
           >
@@ -91,7 +92,7 @@ const RegisterPage: React.FC = () => {
             name="confirm_password"
             dependencies={["password"]}
             rules={[
-              { required: true, message: "请确认密码" },
+              requiredRule("请确认密码"),
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue("password") === value) {

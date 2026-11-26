@@ -19,6 +19,7 @@ import type {
   CrawlTask, CrawlResult, TaskStatusEnum, CrawlSchedule,
 } from "../types/crawler";
 import { TASK_STATUS_LABELS, TASK_STATUS_COLORS, RESULT_STATUS_LABELS } from "../types/crawler";
+import { requiredRule } from "../utils/tableForm";
 import {
   getTask, submitTask, restartTask, stopTask,
   listResults, exportResults, connectTaskSSE,
@@ -404,7 +405,7 @@ const CrawlerTaskDetailPage: React.FC = () => {
             <Statistic
               title="状态"
               value={statusLabel}
-              valueStyle={{ color: isTerminal ? (task.status === "FAILED" ? "#ff4d4f" : "#52c41a") : "#1677ff" }}
+              valueStyle={{ color: isTerminal ? (task.status === "FAILED" ? "var(--color-error)" : "var(--color-success)") : "var(--color-primary)" }}
             />
           </Card>
         </Col>
@@ -493,8 +494,8 @@ const CrawlerTaskDetailPage: React.FC = () => {
               children: (
                 <div
                   style={{
-                    background: "#1e1e1e",
-                    color: "#d4d4d4",
+                    background: "var(--color-code-bg)",
+                    color: "var(--color-code-text)",
                     padding: 12,
                     borderRadius: 4,
                     maxHeight: 400,
@@ -588,14 +589,14 @@ const CrawlerTaskDetailPage: React.FC = () => {
           <Form.Item
             name="intervalDays"
             label="间隔天数"
-            rules={[{ required: true, message: "请输入间隔天数" }]}
+            rules={[requiredRule("请输入间隔天数")]}
           >
             <InputNumber min={1} max={30} style={{ width: 120 }} />
           </Form.Item>
           <Form.Item
             name="runTime"
             label="运行时间"
-            rules={[{ required: true, message: "请选择运行时间" }]}
+            rules={[requiredRule("请选择运行时间")]}
           >
             <TimePicker format="HH:mm:ss" />
           </Form.Item>

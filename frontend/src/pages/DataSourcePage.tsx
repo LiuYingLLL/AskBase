@@ -26,6 +26,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { DataSourceItem, DataSourceForm } from "../types/datasource";
+import { requiredRule, simplePagination } from "../utils/tableForm";
 import {
   listDataSources,
   createDataSource,
@@ -147,7 +148,7 @@ const DataSourcePage: React.FC = () => {
     {
       title: "数据源名称",
       dataIndex: "name",
-      render: (name: string) => <Space><DatabaseOutlined style={{ color: "#1677ff" }} /><b>{name}</b></Space>,
+      render: (name: string) => <Space><DatabaseOutlined style={{ color: "var(--color-primary)" }} /><b>{name}</b></Space>,
     },
     {
       title: "类型",
@@ -229,7 +230,7 @@ const DataSourcePage: React.FC = () => {
           loading={loading}
           size="middle"
           scroll={{ x: "max-content" }}
-          pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 个数据源` }}
+          pagination={simplePagination("个数据源")}
         />
       </Card>
 
@@ -256,7 +257,7 @@ const DataSourcePage: React.FC = () => {
           <Form.Item
             name="name"
             label="数据源名称"
-            rules={[{ required: true, message: "请输入数据源名称" }]}
+            rules={[requiredRule("请输入数据源名称")]}
           >
             <Input placeholder="如 mysql51（自取别名，仅作代号）" maxLength={100} />
           </Form.Item>
@@ -273,7 +274,7 @@ const DataSourcePage: React.FC = () => {
               name="host"
               label="地址"
               style={{ flex: 1 }}
-              rules={[{ required: true, message: "请输入地址" }]}
+              rules={[requiredRule("请输入地址")]}
             >
               <Input placeholder="如 192.168.1.51" />
             </Form.Item>
@@ -285,7 +286,7 @@ const DataSourcePage: React.FC = () => {
           <Form.Item
             name="database"
             label="库/服务名"
-            rules={[{ required: true, message: "请输入库/服务名" }]}
+            rules={[requiredRule("请输入库/服务名")]}
           >
             <Input placeholder="数据库中真实存在的库名，如 ods" />
           </Form.Item>
@@ -295,7 +296,7 @@ const DataSourcePage: React.FC = () => {
               name="username"
               label="用户名"
               style={{ flex: 1 }}
-              rules={[{ required: true, message: "请输入用户名" }]}
+              rules={[requiredRule("请输入用户名")]}
             >
               <Input placeholder="如 root" />
             </Form.Item>
@@ -306,7 +307,7 @@ const DataSourcePage: React.FC = () => {
               rules={
                 editing
                   ? []
-                  : [{ required: true, message: "请输入密码" }]
+                  : [requiredRule("请输入密码")]
               }
               extra={editing ? "留空表示不修改密码" : undefined}
             >

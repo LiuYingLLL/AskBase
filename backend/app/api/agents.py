@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 
+from app.services.validators import ensure_unique_name
 from app.database import get_db
 from app.core.dependencies import get_current_user, get_admin_user
 from app.models.user import User
@@ -212,16 +213,6 @@ def _sanitize_html(value: str) -> str:
     return _re.sub(r"<[^>]*>", "", value)
 
 
-async def _ensure_name_unique(db: AsyncSession, name: str, exclude_agent_id: int | None = None) -> None:
-    """校验智能体名称唯一（排除 exclude_agent_id，用于更新自身）"""
-    q = select(Agent).where(Agent.name == name.strip())
-    if exclude_agent_id is not None:
-        q = q.where(Agent.id != exclude_agent_id)
-    existing = (await db.execute(q)).scalar_one_or_none()
-    if existing is not None:
-        raise HTTPException(status_code=409, detail=f"智能体名称「{name}」已存在，请使用其他名称")
-
-
 async def _validate_kb_ids(db: AsyncSession, kb_ids: List[int]) -> None:
     """校验知识库存在 + 数据库型（B 类）KB 最多挂载 1 个"""
     from app.models.knowledge_base import KnowledgeBase
@@ -259,7 +250,7 @@ async def create_agent(
     await _validate_kb_ids(db, body.kb_ids)
 
     # 名称唯一性校验
-    await _ensure_name_unique(db, body.name, exclude_agent_id=None)
+    await ensure_unique_name(db, Agent, body.name, label="智能体", exclude_id=None)
 
     agent = Agent(
         name=_sanitize_html(body.name),
@@ -313,7 +304,7 @@ async def update_agent(
     # 名称唯一性校验（排除自身）
     if "name" in data:
         data["name"] = _sanitize_html(data["name"])
-        await _ensure_name_unique(db, data["name"], exclude_agent_id=agent_id)
+        await ensure_unique_name(db, Agent, data["name"], label="智能体", exclude_id=agent_id)
     # 文本字段剥离 HTML 标签（XSS 兜底）
     for k in ("description", "icon", "welcome_message"):
         if k in data and data[k]:

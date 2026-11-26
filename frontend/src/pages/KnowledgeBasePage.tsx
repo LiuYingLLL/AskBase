@@ -33,6 +33,7 @@ import { listKnowledgeBases, createKnowledgeBase, updateKnowledgeBase, deleteKno
 import { useNavigate } from "react-router-dom";
 import type { DataSourceItem } from "../types/datasource";
 import { listDataSources } from "../api/datasources";
+import { requiredRule, simplePagination } from "../utils/tableForm";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -157,9 +158,9 @@ const KnowledgeBasePage: React.FC = () => {
       render: (name: string, record) => (
         <Space>
           {record.type === "document" ? (
-            <BookOutlined style={{ color: "#0F6E56" }} />
+            <BookOutlined style={{ color: "var(--color-icon-knowledge)" }} />
           ) : (
-            <DatabaseOutlined style={{ color: "#534AB7" }} />
+            <DatabaseOutlined style={{ color: "var(--color-icon-db)" }} />
           )}
           <b>{name}</b>
         </Space>
@@ -183,7 +184,7 @@ const KnowledgeBasePage: React.FC = () => {
       render: (v: string | null, record) =>
         record.type === "database" ? (
           <Space size={4}>
-            <ApiOutlined style={{ color: "#1677ff" }} />
+            <ApiOutlined style={{ color: "var(--color-primary)" }} />
             {v || record.data_source_id}
           </Space>
         ) : (
@@ -205,13 +206,13 @@ const KnowledgeBasePage: React.FC = () => {
           <Space size={4}>
             <FileTextOutlined />
             <span>{record.doc_count} 文档</span>
-            <span style={{ color: "#999" }}>/</span>
+            <span style={{ color: "var(--color-text-tertiary)" }}>/</span>
             <span>{record.qa_count} 问答</span>
           </Space>
         ) : (
           <Space size={4}>
             <span>{record.table_count} 表</span>
-            <span style={{ color: "#999" }}>/</span>
+            <span style={{ color: "var(--color-text-tertiary)" }}>/</span>
             <span>{record.kp_count} 知识点</span>
           </Space>
         ),
@@ -281,7 +282,7 @@ const KnowledgeBasePage: React.FC = () => {
           loading={loading}
           size="middle"
           scroll={{ x: "max-content" }}
-          pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 个知识库` }}
+          pagination={simplePagination("个知识库")}
         />
       </Card>
 
@@ -297,7 +298,7 @@ const KnowledgeBasePage: React.FC = () => {
           <Form.Item
             name="name"
             label="知识库名称"
-            rules={[{ required: true, message: "请输入知识库名称" }]}
+            rules={[requiredRule("请输入知识库名称")]}
           >
             <Input placeholder="如 高校新闻库" maxLength={100} />
           </Form.Item>
@@ -332,7 +333,7 @@ const KnowledgeBasePage: React.FC = () => {
                   <Form.Item
                     name="data_source_id"
                     noStyle
-                    rules={[{ required: true, message: "请选择数据源" }]}
+                    rules={[requiredRule("请选择数据源")]}
                   >
                     <Select
                       placeholder="选择数据源"
@@ -347,7 +348,7 @@ const KnowledgeBasePage: React.FC = () => {
                   <Form.Item
                     name="database_name"
                     noStyle
-                    rules={[{ required: true, message: "请输入库名" }]}
+                    rules={[requiredRule("请输入库名")]}
                   >
                     <Input placeholder="库/服务名，如 ai_crawl" style={{ flex: 1 }} />
                   </Form.Item>

@@ -6,12 +6,8 @@
 
 from sqlalchemy import String, Integer, Boolean, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
+from app.models._utils import now_iso
 from app.database import Base
-from datetime import datetime
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class DBTable(Base):
@@ -24,8 +20,8 @@ class DBTable(Base):
     column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="列数")
     is_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, comment="必选开关（加入 SQL 生成范围）")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="normal", comment="normal | conflict（源库已消失）")
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<DBTable(id={self.id}, kb_id={self.kb_id}, table='{self.table_name}')>"
@@ -42,8 +38,8 @@ class DBTableField(Base):
     is_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, comment="是否必带字段")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="normal", comment="normal | conflict（源库字段已消失）")
     deleted_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, comment="软删除（管理员删除后保留历史）")
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<DBTableField(id={self.id}, field='{self.field_name}')>"
@@ -59,8 +55,8 @@ class DBKnowledgePoint(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False, comment="名称")
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="内容")
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<DBKnowledgePoint(id={self.id}, kb_id={self.kb_id}, name='{self.name[:30]}')>"

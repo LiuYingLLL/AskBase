@@ -6,6 +6,7 @@ from typing import List
 from fastapi import HTTPException, status
 import json
 
+from app.services.validators import ensure_unique_name
 from app.models.skill import Skill
 from app.schemas.skill import (
     SkillCreate,
@@ -58,7 +59,7 @@ async def get_skill(db: AsyncSession, skill_id: int) -> Skill:
 
 
 async def create_skill(db: AsyncSession, body: SkillCreate) -> SkillItem:
-    await _ensure_name_unique(db, body.name, exclude_id=None)
+    await ensure_unique_name(db, Skill, body.name, label="工具", exclude_id=None)
     s = Skill(
         name=body.name.strip(),
         title=body.title.strip(),
@@ -82,7 +83,7 @@ async def update_skill(db: AsyncSession, skill_id: int, body: SkillUpdate) -> Sk
     data = body.model_dump(exclude_unset=True)
     if "name" in data and data["name"]:
         data["name"] = data["name"].strip()
-        await _ensure_name_unique(db, data["name"], exclude_id=skill_id)
+        await ensure_unique_name(db, Skill, data["name"], label="工具", exclude_id=skill_id)
     if "input_schema" in data:
         data["input_schema"] = json.dumps(data["input_schema"] or {}, ensure_ascii=False)
     for k, v in data.items():
@@ -98,15 +99,6 @@ async def delete_skill(db: AsyncSession, skill_id: int) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="内置工具不可删除，可改为停用")
     await db.delete(s)
     await db.flush()
-
-
-async def _ensure_name_unique(db: AsyncSession, name: str, exclude_id) -> None:
-    q = select(Skill).where(Skill.name == name.strip())
-    if exclude_id is not None:
-        q = q.where(Skill.id != exclude_id)
-    existing = (await db.execute(q)).scalar_one_or_none()
-    if existing is not None:
-        raise HTTPException(status_code=409, detail=f"工具名「{name}」已存在")
 
 
 async def test_skill(

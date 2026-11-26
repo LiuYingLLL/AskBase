@@ -12,6 +12,7 @@ from fastapi import HTTPException, status
 import asyncio
 import json
 
+from app.services.validators import ensure_unique_name
 from app.models.mcp_server import MCPServer
 from app.schemas.mcp_server import (
     MCPServerCreate,
@@ -91,7 +92,7 @@ async def get_server_detail(db: AsyncSession, server_id: int) -> MCPServerDetail
 
 
 async def create_server(db: AsyncSession, body: MCPServerCreate) -> MCPServerDetail:
-    await _ensure_name_unique(db, body.name, exclude_id=None)
+    await ensure_unique_name(db, MCPServer, body.name, label="MCP 服务", exclude_id=None)
     s = MCPServer(
         name=body.name.strip(),
         description=body.description or "",
@@ -115,7 +116,7 @@ async def update_server(
     data = body.model_dump(exclude_unset=True)
     if "name" in data and data["name"]:
         data["name"] = data["name"].strip()
-        await _ensure_name_unique(db, data["name"], exclude_id=server_id)
+        await ensure_unique_name(db, MCPServer, data["name"], label="MCP 服务", exclude_id=server_id)
     if "args" in data:
         data["args"] = _dump_json(data["args"])
     if "env" in data:
@@ -139,15 +140,6 @@ def _dump_json(value) -> Optional[str]:
     if isinstance(value, str):
         return value
     return json.dumps(value, ensure_ascii=False)
-
-
-async def _ensure_name_unique(db: AsyncSession, name: str, exclude_id: Optional[int]) -> None:
-    q = select(MCPServer).where(MCPServer.name == name.strip())
-    if exclude_id is not None:
-        q = q.where(MCPServer.id != exclude_id)
-    existing = (await db.execute(q)).scalar_one_or_none()
-    if existing is not None:
-        raise HTTPException(status_code=409, detail=f"MCP 服务名称「{name}」已存在")
 
 
 # ---------- 工具发现与调用 ----------

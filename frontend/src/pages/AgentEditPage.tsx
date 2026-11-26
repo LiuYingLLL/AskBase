@@ -25,6 +25,7 @@ import type { LLMModelItem } from "../types/llmModel";
 import type { SkillItem } from "../types/skill";
 import type { MCPServerItem, MCPToolItem } from "../types/mcpServer";
 import type { AgentToolRef } from "../types/agent";
+import { requiredRule } from "../utils/tableForm";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -310,7 +311,7 @@ const AgentEditPage: React.FC = () => {
             model_id: undefined,
             tool_keys: [],
           }}>
-            <Form.Item name="name" label="名称" rules={[{ required: true, message: "请输入名称" }]}>
+            <Form.Item name="name" label="名称" rules={[requiredRule("请输入名称")]}>
               <Input placeholder="如：招生问答助手" maxLength={100} />
             </Form.Item>
 
@@ -352,7 +353,7 @@ const AgentEditPage: React.FC = () => {
               <Input />
             </Form.Item>
 
-            <Form.Item name="welcome_message" label="欢迎语" rules={[{ required: true, message: "请输入欢迎语" }]}>
+            <Form.Item name="welcome_message" label="欢迎语" rules={[requiredRule("请输入欢迎语")]}>
               <TextArea rows={2} placeholder="用户进入对话时看到的第一句话" maxLength={500} />
             </Form.Item>
 
@@ -380,7 +381,7 @@ const AgentEditPage: React.FC = () => {
             <Form.Item
               name="model_id"
               label="使用模型"
-              rules={[{ required: true, message: "请为该智能体选择模型" }]}
+              rules={[requiredRule("请为该智能体选择模型")]}
               extra="每个智能体都必须绑定一个模型，没有系统默认"
             >
               <Select placeholder="请选择模型" options={modelOptions} />
@@ -474,7 +475,7 @@ const AgentEditPage: React.FC = () => {
                       lineHeight: 1.6,
                       background:
                         m.role === "user" ? themeToken.colorPrimary : themeToken.colorBgLayout,
-                      color: m.role === "user" ? "#fff" : themeToken.colorText,
+                      color: m.role === "user" ? "var(--color-surface)" : themeToken.colorText,
                     }}
                   >
                     {m.content}

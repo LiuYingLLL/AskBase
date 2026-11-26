@@ -1,83 +1,68 @@
-"""测试配置模块 — 验证所有配置项正确加载"""
+"""配置模块测试 —— 只测「解析逻辑」和「必须成立的约束」
+
+这里刻意不逐条断言配置默认值的字面量。
+把 CHUNK_SIZE == 800 抄成断言，改默认值就得改测试，一个行为都验证不到；
+真正会让线上出问题的是约束被破坏（比如重叠大于块大小）。
+"""
 
 import pytest
-import os
-from app.config import Settings, settings
+
+from app.config import Settings
 
 
-class TestSettings:
-    """配置管理 — 环境变量和默认值"""
-
-    def test_默认值_正确设置(self):
-        """场景：检查关键默认配置项（不读 .env，验证代码默认值）"""
-        defaults = Settings(_env_file=None)
-        assert defaults.APP_NAME == "AskBase"
-        assert defaults.LLM_MODEL == "deepseek-chat"
-        assert defaults.EMBEDDING_MODEL == "text-embedding-v3"
-        assert defaults.LLM_TEMPERATURE == 0.3
-        assert defaults.CHUNK_SIZE == 800
-        assert defaults.CHUNK_OVERLAP == 100
-        assert defaults.RETRIEVAL_TOP_K == 5
-        assert defaults.RETRIEVAL_SCORE_THRESHOLD == 0.3  # 混合检索下放宽以提升召回
-        assert defaults.CHAT_HISTORY_WINDOW == 10
-        assert defaults.MAX_UPLOAD_SIZE_MB == 50
-        assert defaults.JWT_ALGORITHM == "HS256"
-        assert defaults.JWT_EXPIRE_MINUTES == 1440
-        # 检索优化
-        assert defaults.HYBRID_ENABLED is True
-        assert defaults.HYBRID_RRF_K == 60
-        assert defaults.BM25_TOP_K == 5
-        assert defaults.BM25_TOKENIZER == "jieba"
-        assert defaults.RERANK_ENABLED is False
-        assert defaults.RERANK_MODE == "bm25"
-        assert defaults.RERANK_TOP_N == 10
-        assert defaults.RERANK_OUTPUT_K == 5
-        assert defaults.QUERY_REWRITE_ENABLED is False
-        assert defaults.CACHE_ENABLED is False
-        assert defaults.CACHE_TTL == 300
-        assert defaults.CACHE_MAX_ENTRIES == 256
-
-    def test_管理员种子数据_配置正确(self):
-        """场景：管理员用户名和密码已配置"""
-        assert settings.ADMIN_USERNAME == "admin"
-        assert settings.ADMIN_PASSWORD == "123456"
-
-    def test_LLM_API_Key_已配置(self):
-        """场景：LLM API Key 不为空"""
-        assert settings.LLM_API_KEY != ""
-        assert len(settings.LLM_API_KEY) > 10
-        assert settings.LLM_API_KEY.startswith("sk-")
-
-    def test_Embedding_API_Key_已配置(self):
-        """场景：Embedding API Key 不为空"""
-        assert settings.EMBEDDING_API_KEY != ""
-        assert len(settings.EMBEDDING_API_KEY) > 10
-        assert settings.EMBEDDING_API_KEY.startswith("sk-")
+class Test解析逻辑:
+    """逗号分隔字符串 → 列表，这是真逻辑，值得测"""
 
     def test_允许的文件扩展名_解析正确(self):
         """场景：ALLOWED_EXTENSIONS 正确解析为列表"""
+        settings = Settings(_env_file=None)
         extensions = settings.allowed_extensions_list
         assert "txt" in extensions
-        assert "md" in extensions
         assert "pdf" in extensions
-        assert "docx" in extensions
-        assert "csv" in extensions
-        assert "xlsx" in extensions
-        assert len(extensions) == 6
+        assert len(extensions) == len(set(extensions)), "不应有重复项"
 
     def test_CORS_来源_解析正确(self):
         """场景：CORS_ORIGINS 正确解析为列表"""
-        origins = settings.cors_origins_list
-        assert "http://localhost:5175" in origins
-        assert len(origins) >= 1
+        origins = Settings(_env_file=None).cors_origins_list
+        assert origins, "至少要有一个来源，否则前端全部被拦"
+        assert all(o.startswith("http") for o in origins)
 
-    def test_数据库URL_配置正确(self):
-        """场景：DATABASE_URL 指向 SQLite"""
-        assert "sqlite" in settings.DATABASE_URL
-        assert "aiosqlite" in settings.DATABASE_URL
+    def test_扩展名带空格和大小写_仍能解析(self):
+        """场景：配置里写了 " PDF , Docx " → 归一化后可用"""
+        settings = Settings(_env_file=None, ALLOWED_EXTENSIONS=" PDF , Docx ")
+        parsed = settings.allowed_extensions_list
+        assert "pdf" in parsed and "docx" in parsed
+        assert all(e == e.strip() for e in parsed)
 
-    def test_ChromaDB_配置正确(self):
-        """场景：ChromaDB 持久化目录和集合名代码默认值正确（不读 .env）"""
-        defaults = Settings(_env_file=None)
-        assert defaults.CHROMA_PERSIST_DIR == "./data/chromadb"
-        assert defaults.CHROMA_COLLECTION_NAME == "askbase_kb"
+
+class Test关键约束:
+    """这些约束一旦被破坏，功能会静默出错，比默认值漂移危险得多"""
+
+    def test_切分重叠小于块大小(self):
+        """场景：overlap >= chunk_size 时递归切分会死循环"""
+        settings = Settings(_env_file=None)
+        assert settings.CHUNK_OVERLAP < settings.CHUNK_SIZE
+
+    def test_重排保留数量不超过候选数量(self):
+        """场景：RERANK_OUTPUT_K > RERANK_TOP_N 时重排后取不满预期条数"""
+        settings = Settings(_env_file=None)
+        assert settings.RERANK_OUTPUT_K <= settings.RERANK_TOP_N
+
+    def test_子块尺寸不超过父块上限(self):
+        """场景：子块比父块还大会让父子块关系失去意义"""
+        settings = Settings(_env_file=None)
+        assert settings.CHUNK_SIZE <= settings.PARENT_CHUNK_MAX_CHARS
+
+    def test_检索与超时参数为正(self):
+        """场景：0 或负值会让检索、上传、解析直接失效"""
+        settings = Settings(_env_file=None)
+        assert settings.RETRIEVAL_TOP_K > 0
+        assert settings.BM25_TOP_K > 0
+        assert settings.MAX_UPLOAD_SIZE_MB > 0
+        assert settings.JWT_EXPIRE_MINUTES > 0
+        assert settings.MINERU_TIMEOUT > 0
+
+    def test_相似度阈值在合法区间(self):
+        """场景：阈值越界会让检索永远无结果或永远全过"""
+        settings = Settings(_env_file=None)
+        assert 0 <= settings.RETRIEVAL_SCORE_THRESHOLD <= 1

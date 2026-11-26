@@ -40,11 +40,11 @@ const SourceCitations: React.FC<SourceCitationsProps> = ({ sources }) => {
     const label = (
       <Space size="small">
         {isSql ? (
-          <CodeOutlined style={{ color: "#993556" }} />
+          <CodeOutlined style={{ color: "var(--color-icon-code)" }} />
         ) : isDbResult ? (
-          <DatabaseOutlined style={{ color: "#534AB7" }} />
+          <DatabaseOutlined style={{ color: "var(--color-icon-db)" }} />
         ) : isWeb ? (
-          <LinkOutlined style={{ color: "#0F766E" }} />
+          <LinkOutlined style={{ color: "var(--color-icon-tool)" }} />
         ) : (
           <FileTextOutlined />
         )}

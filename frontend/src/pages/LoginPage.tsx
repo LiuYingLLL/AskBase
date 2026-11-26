@@ -5,6 +5,7 @@ import { Card, Form, Input, Button, Typography, Alert, theme } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { requiredRule } from "../utils/tableForm";
 
 const { Title, Text } = Typography;
 
@@ -54,10 +55,10 @@ const LoginPage: React.FC = () => {
         )}
 
         <Form name="login" onFinish={onFinish} size="large">
-          <Form.Item name="username" rules={[{ required: true, message: "请输入用户名" }]}>
+          <Form.Item name="username" rules={[requiredRule("请输入用户名")]}>
             <Input prefix={<UserOutlined />} placeholder="用户名" autoComplete="username" />
           </Form.Item>
-          <Form.Item name="password" rules={[{ required: true, message: "请输入密码" }]}>
+          <Form.Item name="password" rules={[requiredRule("请输入密码")]}>
             <Input.Password prefix={<LockOutlined />} placeholder="密码" autoComplete="current-password" />
           </Form.Item>
           <Form.Item>

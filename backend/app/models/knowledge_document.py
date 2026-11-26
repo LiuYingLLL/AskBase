@@ -2,17 +2,13 @@
 
 from sqlalchemy import String, Integer, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models._utils import now_iso
 from app.database import Base
 from typing import Optional, TYPE_CHECKING
-from datetime import datetime
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.agent import Agent
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class KnowledgeDocument(Base):
@@ -33,7 +29,7 @@ class KnowledgeDocument(Base):
     )
     uploaded_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     created_at: Mapped[str] = mapped_column(
-        String(30), nullable=False, default=_now
+        String(30), nullable=False, default=now_iso
     )
 
     # 关系

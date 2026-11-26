@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 import asyncio
 import time
 
+from app.services.validators import ensure_unique_name
 from app.models.data_source import DataSource
 from app.schemas.data_source import (
     DataSourceCreate,
@@ -34,7 +35,7 @@ async def get_data_source(db: AsyncSession, ds_id: int) -> DataSource:
 
 async def create_data_source(db: AsyncSession, body: DataSourceCreate) -> DataSourceItem:
     """创建数据源；名称唯一校验"""
-    await _ensure_name_unique(db, body.name, exclude_id=None)
+    await ensure_unique_name(db, DataSource, body.name, label="数据源", exclude_id=None)
 
     ds = DataSource(
         name=body.name.strip(),
@@ -61,7 +62,7 @@ async def update_data_source(
 
     if "name" in data and data["name"]:
         data["name"] = data["name"].strip()
-        await _ensure_name_unique(db, data["name"], exclude_id=ds_id)
+        await ensure_unique_name(db, DataSource, data["name"], label="数据源", exclude_id=ds_id)
     if "type" in data and not data["type"]:
         data["type"] = "mysql"
 
@@ -102,16 +103,6 @@ async def delete_data_source(db: AsyncSession, ds_id: int) -> None:
             )
     await db.delete(ds)
     await db.flush()
-
-
-async def _ensure_name_unique(db: AsyncSession, name: str, exclude_id: Optional[int]) -> None:
-    """数据源名称唯一（排除自身）"""
-    q = select(DataSource).where(DataSource.name == name.strip())
-    if exclude_id is not None:
-        q = q.where(DataSource.id != exclude_id)
-    existing = (await db.execute(q)).scalar_one_or_none()
-    if existing is not None:
-        raise HTTPException(status_code=409, detail=f"数据源名称「{name}」已存在，请使用其他名称")
 
 
 def _test_mysql_connection(

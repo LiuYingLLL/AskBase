@@ -34,6 +34,7 @@ import type { DocumentItem, KnowledgeBaseItem, QAItem, QAItemForm } from "../typ
 import { getKnowledgeBase } from "../api/knowledgeBases";
 import { listDocuments, uploadDocument, deleteDocument, listQA, createQA, updateQA, deleteQA } from "../api/kb";
 import DBKnowledgeBaseDetailPage from "./DBKnowledgeBaseDetailPage";
+import { requiredRule } from "../utils/tableForm";
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
@@ -237,7 +238,7 @@ const KnowledgeBaseDetailPage: React.FC = () => {
       ellipsis: true,
       render: (q: string) => (
         <Space>
-          <QuestionCircleOutlined style={{ color: "#1677ff" }} />
+          <QuestionCircleOutlined style={{ color: "var(--color-primary)" }} />
           <b>{q}</b>
         </Space>
       ),
@@ -417,14 +418,14 @@ const KnowledgeBaseDetailPage: React.FC = () => {
           <Form.Item
             name="question"
             label="问题"
-            rules={[{ required: true, message: "请输入问题" }]}
+            rules={[requiredRule("请输入问题")]}
           >
             <Input placeholder="如：查询今年阿坝州宗教方面的要闻" maxLength={500} />
           </Form.Item>
           <Form.Item
             name="answer"
             label="答案"
-            rules={[{ required: true, message: "请输入答案" }]}
+            rules={[requiredRule("请输入答案")]}
           >
             <TextArea placeholder="输入该问题的标准答案，用于提升会话效果" rows={5} />
           </Form.Item>

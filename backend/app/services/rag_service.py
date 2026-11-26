@@ -10,9 +10,16 @@ import hashlib
 import os
 
 from langchain_core.documents import Document
-from app.rag.loader import load_document
+from app.rag.loader import load_document_async
 from app.rag.splitter import get_text_splitter
-from app.rag.vector_store import get_vectorstore, reset_vectorstore
+from app.rag.parent_child import ParentChunkDraft, split_with_parents
+from app.rag.parent_chunk_store import ParentChunkStore
+from app.rag.vector_store import (
+    get_vectorstore,
+    probe_index_health,
+    recreate_collection,
+    reset_vectorstore,
+)
 from app.rag.retriever import retrieve_similar_chunks, retrieve_with_scores
 from app.rag.chain import stream_rag_response, generate_rag_response
 from app.models.knowledge_document import KnowledgeDocument
@@ -53,6 +60,73 @@ def _invalidate_indexes() -> None:
         pass  # WP-A 模块未就绪时跳过
 
 
+def _prepare_chunks(
+    raw_docs: list,
+    file_path: str,
+    filename: str,
+    kb_doc_id: int,
+    kb_id: int | None,
+) -> tuple[list, list[ParentChunkDraft]]:
+    """统一切分入口 —— 返回 (子块列表, 父块草稿列表)
+
+    父子块开启时走两级切分；关闭后退回单级固定长度切分，父块列表为空。
+    无论走哪条路径，子块都会补全入库必需的元数据。
+    """
+    if settings.PARENT_CHUNK_ENABLED:
+        # 多页 loader（如 PyPDFLoader）先拼成全文，章节结构由 Markdown 标题决定
+        text = "\n\n".join(
+            d.page_content for d in raw_docs if (d.page_content or "").strip()
+        )
+        result = split_with_parents(text, filename, kb_doc_id, kb_id)
+        chunks, parents = result.children, result.parents
+    else:
+        chunks = get_text_splitter().split_documents(raw_docs)
+        parents = []
+
+    for i, chunk in enumerate(chunks):
+        chunk.metadata.update({
+            "source_file": file_path,
+            "filename": filename,
+            "chunk_index": i,
+            "total_chunks": len(chunks),
+            "chunk_hash": _compute_chunk_hash(chunk.page_content),
+            "kb_doc_id": kb_doc_id,
+            "kb_id": kb_id,
+            "kind": "doc",
+        })
+        if kb_id is None:
+            # Chroma 的 metadata 不接受 None
+            chunk.metadata.pop("kb_id", None)
+
+    return chunks, parents
+
+
+async def _save_parents(
+    db: AsyncSession,
+    kb_doc_id: int,
+    filename: str,
+    kb_id: int | None,
+    parents: list[ParentChunkDraft],
+    kept_children: list,
+) -> None:
+    """写入父块 —— 只写仍有子块存活的父块，避免留下查不到子块的孤儿章节"""
+    if not parents:
+        return
+
+    alive_ids = {
+        c.metadata.get("parent_id")
+        for c in kept_children
+        if c.metadata.get("parent_id")
+    }
+    drafts = [p for p in parents if p.id in alive_ids]
+    if not drafts:
+        return
+
+    store = ParentChunkStore(db)
+    await store.replace_for_document(kb_doc_id, drafts, filename, kb_id)
+
+
+
 async def ingest_document(
     file_path: str,
     filename: str,
@@ -65,27 +139,15 @@ async def ingest_document(
     返回 chunk 数量
     """
     try:
-        # 1. 加载文档
-        raw_docs = load_document(file_path)
+        # 1. 加载文档（PDF 在配置了 MinerU 时走在线解析，失败自动降级）
+        raw_docs = await load_document_async(file_path)
 
-        # 2. 分割文本
-        splitter = get_text_splitter()
-        chunks = splitter.split_documents(raw_docs)
+        # 2. 切分：父子块开启时出父块 + 子块，关闭时退回单级切分
+        chunks, parents = _prepare_chunks(
+            raw_docs, file_path, filename, kb_doc_id, kb_id
+        )
 
-        # 3. 元数据丰富
-        for i, chunk in enumerate(chunks):
-            chunk.metadata.update({
-                "source_file": file_path,
-                "filename": filename,
-                "chunk_index": i,
-                "total_chunks": len(chunks),
-                "chunk_hash": _compute_chunk_hash(chunk.page_content),
-                "kb_doc_id": kb_doc_id,
-                "kb_id": kb_id,
-                "kind": "doc",
-            })
-
-        # 4. 去重：跳过已存在的 chunk_hash（只拉元数据，不拉向量）
+        # 3. 去重：跳过已存在的 chunk_hash（只拉元数据，不拉向量）
         vectorstore = get_vectorstore()
         collection = vectorstore._collection
         existing = collection.get(include=["metadatas"])
@@ -98,11 +160,14 @@ async def ingest_document(
         if skipped > 0:
             print(f"[rag_service] 去重跳过 {skipped} 个已存在的块（共 {len(chunks)} 个）")
 
-        # 5. 存储到 ChromaDB（分批 embedding）
+        # 4. 存储到 ChromaDB（分批 embedding）
         batch_size = 10  # 百炼 text-embedding-v3 单批次上限为 10
         for i in range(0, len(kept), batch_size):
             batch = kept[i:i + batch_size]
             vectorstore.add_documents(batch)
+
+        # 5. 写父块：只保留仍有子块存活的父块，避免孤儿章节
+        await _save_parents(db, kb_doc_id, filename, kb_id, parents, kept)
 
         # 6. 更新知识文档记录
         result = await db.execute(
@@ -135,11 +200,20 @@ async def ingest_document(
 
 
 async def delete_kb_document_chunks(kb_doc_id: int) -> None:
-    """删除指定知识文档的所有 ChromaDB 向量"""
+    """删除指定知识文档的所有 ChromaDB 向量与父块"""
     vectorstore = get_vectorstore()
     # ChromaDB 按 metadata 过滤删除
     collection = vectorstore._collection
     collection.delete(where={"kb_doc_id": kb_doc_id})
+
+    # 同步清理父块，避免留下查不到子块的孤儿章节
+    from app.database import async_session_factory
+
+    async with async_session_factory() as session:
+        store = ParentChunkStore(session)
+        await store.delete_for_document(kb_doc_id)
+        await session.commit()
+
     # 删除成功后失效相关索引与缓存
     _invalidate_indexes()
 
@@ -165,8 +239,19 @@ async def rebuild_index(db: AsyncSession) -> int:
     if not docs:
         return 0
 
+    # 索引本身损坏时，在坏集合上增删是修不回来的，必须先重建集合。
+    # 代价是集合里的向量全部清空（含爬虫桥接灌入、无磁盘文件的那些），
+    # 所以只在探测确认损坏时执行，并且把提示写进日志。
+    healthy, detail = probe_index_health()
+    if not healthy:
+        print(f"[rag_service] 向量索引不可用（{detail}），重建集合后重新索引")
+        removed = recreate_collection()
+        print(
+            f"[rag_service] 已清空 {removed} 条向量。"
+            "外部来源（爬虫桥接等无磁盘文件的文档）需要各自重新灌入。"
+        )
+
     vectorstore = get_vectorstore()
-    splitter = get_text_splitter()
 
     # 重新摄入
     total_chunks = 0
@@ -182,25 +267,19 @@ async def rebuild_index(db: AsyncSession) -> int:
             # 先删除该文档的旧块（按 kb_doc_id），保证重建结果幂等
             await delete_kb_document_chunks(kb_doc.id)
 
-            raw_docs = load_document(file_path)
-            chunks = splitter.split_documents(raw_docs)
-
-            for i, chunk in enumerate(chunks):
-                chunk.metadata.update({
-                    "source_file": file_path,
-                    "filename": kb_doc.filename,
-                    "chunk_index": i,
-                    "total_chunks": len(chunks),
-                    "chunk_hash": _compute_chunk_hash(chunk.page_content),
-                    "kb_doc_id": kb_doc.id,
-                    "kb_id": kb_doc.kb_id,
-                    "kind": "doc",
-                })
+            raw_docs = await load_document_async(file_path)
+            chunks, parents = _prepare_chunks(
+                raw_docs, file_path, kb_doc.filename, kb_doc.id, kb_doc.kb_id
+            )
 
             batch_size = 10  # 百炼 text-embedding-v3 单批次上限为 10
             for i in range(0, len(chunks), batch_size):
                 batch = chunks[i:i + batch_size]
                 vectorstore.add_documents(batch)
+
+            await _save_parents(
+                db, kb_doc.id, kb_doc.filename, kb_doc.kb_id, parents, chunks
+            )
 
             kb_doc.chunk_count = len(chunks)
             total_chunks += len(chunks)

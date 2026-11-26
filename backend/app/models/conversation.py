@@ -2,18 +2,14 @@
 
 from sqlalchemy import String, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models._utils import now_iso
 from app.database import Base
 from typing import List, Optional, TYPE_CHECKING
-from datetime import datetime
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.message import Message
     from app.models.agent import Agent
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class Conversation(Base):
@@ -25,10 +21,10 @@ class Conversation(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False, default="新对话")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[str] = mapped_column(
-        String(30), nullable=False, default=_now
+        String(30), nullable=False, default=now_iso
     )
     updated_at: Mapped[str] = mapped_column(
-        String(30), nullable=False, default=_now, onupdate=_now
+        String(30), nullable=False, default=now_iso, onupdate=now_iso
     )
 
     # 关系

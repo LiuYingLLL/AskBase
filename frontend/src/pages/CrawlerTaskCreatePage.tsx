@@ -8,6 +8,7 @@ import {
 } from "antd";
 import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
 import { createTask } from "../api/crawler";
+import { requiredRule } from "../utils/tableForm";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -64,7 +65,7 @@ const CrawlerTaskCreatePage: React.FC = () => {
           <Form.Item
             name="title"
             label="任务标题"
-            rules={[{ required: true, message: "请输入任务标题" }]}
+            rules={[requiredRule("请输入任务标题")]}
           >
             <Input placeholder="为任务起一个名字" />
           </Form.Item>
@@ -72,7 +73,7 @@ const CrawlerTaskCreatePage: React.FC = () => {
           <Form.Item
             name="description"
             label="任务描述"
-            rules={[{ required: true, message: "请输入任务描述" }]}
+            rules={[requiredRule("请输入任务描述")]}
           >
             <TextArea rows={3} placeholder="描述这个爬虫任务的目标" />
           </Form.Item>

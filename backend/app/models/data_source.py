@@ -2,13 +2,9 @@
 
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column
+from app.models._utils import now_iso
 from app.database import Base
-from datetime import datetime
 from typing import Optional
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class DataSource(Base):
@@ -29,8 +25,8 @@ class DataSource(Base):
     database: Mapped[str] = mapped_column(String(255), nullable=False, comment="库/服务名（真实库名）")
     username: Mapped[str] = mapped_column(String(100), nullable=False, comment="用户名")
     password_encrypted: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="密码（Fernet 加密）")
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<DataSource(id={self.id}, name='{self.name}', db='{self.database}')>"

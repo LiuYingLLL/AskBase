@@ -50,6 +50,21 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 800
     CHUNK_OVERLAP: int = 100
     RETRIEVAL_TOP_K: int = 5
+
+    # === 父子块切分 ===
+    # 开启后：按标题切父块 → 父块内切子块 → 检索命中子块后回查完整父块。
+    # 关闭后退回"一刀"固定长度切分，用于快速回滚。
+    PARENT_CHUNK_ENABLED: bool = True
+    # 单个父块的内容上限（字符）。超过则按长度切成虚拟父块。
+    # 太小等于没回查，太大容易把模型上下文塞满，4000 是折中值。
+    PARENT_CHUNK_MAX_CHARS: int = 4000
+    # 父块切到第几级标题（1-4）。默认 2，即"章/条"级：
+    # 更深的子标题留在父块正文里，避免父块碎成一行一块。
+    PARENT_CHUNK_HEADER_DEPTH: int = 2
+    # 无标题文档的字符上限。超过直接拒绝入库：
+    # 实测一份 238 万字符的费率表（15 个巨型表格、零标题）会切出上万块，
+    # 既不可检索也严重消耗 embedding 额度。这类文档应走结构化查询而非向量检索。
+    MAX_FLAT_DOC_CHARS: int = 500_000
     # 向量路相似度阈值：混合检索（BM25 兜底精确匹配）下放宽到 0.3 提升召回，
     # 口语化短查询（如"衣服怎么洗"）更易命中，无关查询仍有 BM25 门槛兜底
     RETRIEVAL_SCORE_THRESHOLD: float = 0.3
@@ -74,6 +89,18 @@ class Settings(BaseSettings):
     CACHE_TTL: int = 300               # 缓存秒数
     CACHE_MAX_ENTRIES: int = 256
 
+    # === MinerU 在线解析（PDF → Markdown，可选） ===
+    # 开关打开且 token 非空时 PDF 走 MinerU；任一条件不满足自动降级 PyPDFLoader。
+    # token 在 https://mineru.net 的「API 管理 → Token」创建，有效期 90 天且不支持续期，
+    # 到期后需重新创建并更新 .env。
+    MINERU_ENABLED: bool = True
+    MINERU_API_TOKEN: str = ""
+    MINERU_BASE_URL: str = "https://mineru.net/api/v4"
+    # 轮询总超时。实测 180 页的费率表约需 5 分钟以上，300 秒不够，
+    # 默认给到 600 秒；超时后自动降级 PyPDFLoader，不会让入库失败。
+    MINERU_TIMEOUT: int = 600
+    MINERU_LANGUAGE: str = "ch"        # OCR 语言，中文场景保持 ch（中英混合）
+
     # === 文件上传 ===
     MAX_UPLOAD_SIZE_MB: int = 50
     ALLOWED_EXTENSIONS: str = "txt,md,pdf,docx,csv,xlsx"
@@ -87,7 +114,8 @@ class Settings(BaseSettings):
 
     @property
     def allowed_extensions_list(self) -> List[str]:
-        return [ext.strip() for ext in self.ALLOWED_EXTENSIONS.split(",")]
+        # 统一小写：上传侧已 lower，配置里写 "PDF" 也必须能匹配上
+        return [ext.strip().lower() for ext in self.ALLOWED_EXTENSIONS.split(",") if ext.strip()]
 
     @property
     def cors_origins_list(self) -> List[str]:

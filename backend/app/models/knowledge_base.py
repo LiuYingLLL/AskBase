@@ -9,13 +9,9 @@ A 类 KB 两字段均为 NULL，SQLite 唯一索引允许多个 NULL 行共存�
 
 from sqlalchemy import String, Integer, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+from app.models._utils import now_iso
 from app.database import Base
-from datetime import datetime
 from typing import Optional
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class KnowledgeBase(Base):
@@ -41,8 +37,8 @@ class KnowledgeBase(Base):
     )
     description: Mapped[str] = mapped_column(String(500), nullable=False, default="", comment="描述")
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<KnowledgeBase(id={self.id}, name='{self.name}', type='{self.type}')>"

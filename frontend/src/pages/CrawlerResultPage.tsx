@@ -132,7 +132,7 @@ const CrawlerResultPage: React.FC = () => {
               fontSize: 12,
               maxHeight: 400,
               overflow: "auto",
-              background: "#f5f5f5",
+              background: "var(--color-bg-muted)",
               padding: 12,
               borderRadius: 4,
             }}

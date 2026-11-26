@@ -6,13 +6,9 @@
 
 from sqlalchemy import String, Integer, Float, Boolean, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+from app.models._utils import now_iso
 from app.database import Base
-from datetime import datetime
 from typing import Optional
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class LLMModel(Base):
@@ -36,8 +32,8 @@ class LLMModel(Base):
     temperature: Mapped[float] = mapped_column(Float, nullable=False, default=0.3, comment="默认温度")
     max_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="最大输出 token（空=不限制）")
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<LLMModel(id={self.id}, name='{self.name}', model_id='{self.model_id}')>"

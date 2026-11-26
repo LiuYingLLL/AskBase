@@ -30,6 +30,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { KnowledgeBaseItem } from "../types/kb";
+import { requiredRule } from "../utils/tableForm";
 import type {
   DBTableItem,
   DBTableFieldItem,
@@ -485,10 +486,10 @@ const DBKnowledgeBaseDetailPage: React.FC<Props> = ({ kb, onChanged }) => {
         width={560}
       >
         <Form form={kpForm} layout="vertical" requiredMark={false} style={{ marginTop: 8 }}>
-          <Form.Item name="name" label="名称" rules={[{ required: true, message: "请输入名称" }]}>
+          <Form.Item name="name" label="名称" rules={[requiredRule("请输入名称")]}>
             <Input placeholder="如：数据有效性" maxLength={255} />
           </Form.Item>
-          <Form.Item name="content" label="内容" rules={[{ required: true, message: "请输入内容" }]}>
+          <Form.Item name="content" label="内容" rules={[requiredRule("请输入内容")]}>
             <TextArea placeholder="补充说明库/表/字段的业务语义，提升 AI 生成 SQL 的准确率" rows={5} />
           </Form.Item>
         </Form>

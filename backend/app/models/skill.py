@@ -6,13 +6,9 @@
 
 from sqlalchemy import String, Integer, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column
+from app.models._utils import now_iso
 from app.database import Base
-from datetime import datetime
 from typing import Optional
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class Skill(Base):
@@ -40,8 +36,8 @@ class Skill(Base):
         Boolean, nullable=False, default=False, comment="是否危险/写操作（前端调用前需确认）"
     )
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now)
-    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=_now, onupdate=_now)
+    created_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), nullable=False, default=now_iso, onupdate=now_iso)
 
     def __repr__(self) -> str:
         return f"<Skill(id={self.id}, name='{self.name}')>"

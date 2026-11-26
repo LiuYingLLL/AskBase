@@ -6,6 +6,7 @@ import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { changePassword } from "../api/auth";
+import { requiredRule } from "../utils/tableForm";
 
 const { Title, Text } = Typography;
 
@@ -79,7 +80,7 @@ const ProfilePage: React.FC = () => {
         <Form.Item
           name="old_password"
           label="旧密码"
-          rules={[{ required: true, message: "请输入旧密码" }]}
+          rules={[requiredRule("请输入旧密码")]}
         >
           <Input.Password prefix={<LockOutlined />} placeholder="输入旧密码" />
         </Form.Item>
@@ -87,7 +88,7 @@ const ProfilePage: React.FC = () => {
           name="new_password"
           label="新密码"
           rules={[
-            { required: true, message: "请输入新密码" },
+            requiredRule("请输入新密码"),
             { min: 6, message: "密码至少 6 个字符" },
           ]}
         >
@@ -98,7 +99,7 @@ const ProfilePage: React.FC = () => {
           label="确认新密码"
           dependencies={["new_password"]}
           rules={[
-            { required: true, message: "请确认新密码" },
+            requiredRule("请确认新密码"),
             ({ getFieldValue }) => ({
               validator(_, value) {
                 if (!value || getFieldValue("new_password") === value) {

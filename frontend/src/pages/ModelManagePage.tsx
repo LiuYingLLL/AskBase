@@ -35,6 +35,7 @@ import type {
   ProviderOption,
 } from "../types/llmModel";
 import { PROVIDER_LABELS } from "../types/llmModel";
+import { requiredRule, simplePagination } from "../utils/tableForm";
 import {
   listModels,
   createModel,
@@ -185,7 +186,7 @@ const ModelManagePage: React.FC = () => {
       dataIndex: "name",
       render: (name: string, record) => (
         <Space>
-          <BulbOutlined style={{ color: "#1677ff" }} />
+          <BulbOutlined style={{ color: "var(--color-primary)" }} />
           <b>{name}</b>
           {record.is_default && <Tag color="gold">默认</Tag>}
         </Space>
@@ -220,7 +221,7 @@ const ModelManagePage: React.FC = () => {
           {record.is_vision && <Tag color="purple">视觉</Tag>}
           {record.supports_tool_call && <Tag color="cyan">工具调用</Tag>}
           {!record.is_vision && !record.supports_tool_call && (
-            <span style={{ color: "#999" }}>—</span>
+            <span style={{ color: "var(--color-text-tertiary)" }}>—</span>
           )}
         </Space>
       ),
@@ -308,7 +309,7 @@ const ModelManagePage: React.FC = () => {
           loading={loading}
           size="middle"
           scroll={{ x: "max-content" }}
-          pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 个模型` }}
+          pagination={simplePagination("个模型")}
         />
       </Card>
 
@@ -341,7 +342,7 @@ const ModelManagePage: React.FC = () => {
           <Form.Item
             name="provider"
             label="厂商名称"
-            rules={[{ required: true, message: "请选择厂商" }]}
+            rules={[requiredRule("请选择厂商")]}
           >
             <Select
               placeholder="选择厂商"
@@ -358,7 +359,7 @@ const ModelManagePage: React.FC = () => {
           <Form.Item
             name="name"
             label="模型名称"
-            rules={[{ required: true, message: "请输入模型名称" }]}
+            rules={[requiredRule("请输入模型名称")]}
           >
             <Input placeholder="如：DeepSeek V3（展示用名称）" maxLength={100} />
           </Form.Item>
@@ -366,7 +367,7 @@ const ModelManagePage: React.FC = () => {
           <Form.Item
             name="model_id"
             label="模型 ID"
-            rules={[{ required: true, message: "请输入模型 ID" }]}
+            rules={[requiredRule("请输入模型 ID")]}
             extra="必须与厂商实际提供的模型标识完全一致（含大小写与后缀）"
           >
             <Input placeholder="如：deepseek-chat" maxLength={100} />
@@ -375,7 +376,7 @@ const ModelManagePage: React.FC = () => {
           <Form.Item
             name="base_url"
             label="接口地址"
-            rules={[{ required: true, message: "请输入接口地址" }]}
+            rules={[requiredRule("请输入接口地址")]}
             extra="OpenAI 兼容端点，选择厂商后自动填充，可修改"
           >
             <Input placeholder="如：https://api.deepseek.com" />
@@ -384,7 +385,7 @@ const ModelManagePage: React.FC = () => {
           <Form.Item
             name="api_key"
             label="API Key"
-            rules={editing ? [] : [{ required: true, message: "请输入 API Key" }]}
+            rules={editing ? [] : [requiredRule("请输入 API Key")]}
             extra={editing ? "留空表示不修改密钥" : undefined}
           >
             <Input.Password placeholder="sk-..." autoComplete="new-password" />

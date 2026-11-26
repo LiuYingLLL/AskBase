@@ -18,10 +18,16 @@ langchain-chroma==0.2.1
 langchain-openai==0.3.0
 
 pypdf2==3.0.1
+# langchain 的 PyPDFLoader 依赖 pypdf（与上面的 pypdf2 是两个不同的包）
+pypdf>=5.0
 python-docx==1.1.2
 openpyxl==3.1.5
 
 chromadb==0.5.23
+# chromadb 0.5.x 只声明 posthog>=2.4 而无上界，装到 posthog 4+ 后
+# capture() 改成关键字参数，Chroma 每次集合操作都在后台抛 TypeError
+# （日志刷 "capture() takes 1 positional argument but 3 were given"）。
+posthog<4
 
 # 检索优化（BM25 混合检索）
 rank_bm25==0.2.2

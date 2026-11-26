@@ -31,6 +31,7 @@ import {
   type AdminUserItem,
 } from "../api/users";
 import { useAuthStore } from "../store/authStore";
+import { requiredRule, simplePagination } from "../utils/tableForm";
 
 const UserManagePage: React.FC = () => {
   const { token: themeToken } = theme.useToken();
@@ -230,7 +231,7 @@ const UserManagePage: React.FC = () => {
           loading={loading}
           size="middle"
           scroll={{ x: "max-content" }}
-          pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 个用户` }}
+          pagination={simplePagination("个用户")}
         />
       </Card>
 
@@ -248,7 +249,7 @@ const UserManagePage: React.FC = () => {
             name="username"
             label="用户名"
             rules={[
-              { required: true, message: "请输入用户名" },
+              requiredRule("请输入用户名"),
               { pattern: /^[a-zA-Z0-9_]+$/, message: "只能包含字母、数字和下划线" },
               { min: 3, message: "至少 3 个字符" },
             ]}
@@ -259,7 +260,7 @@ const UserManagePage: React.FC = () => {
             name="password"
             label="初始密码"
             rules={[
-              { required: true, message: "请输入初始密码" },
+              requiredRule("请输入初始密码"),
               { min: 6, message: "至少 6 位" },
             ]}
           >
@@ -290,7 +291,7 @@ const UserManagePage: React.FC = () => {
             name="new_password"
             label="新密码"
             rules={[
-              { required: true, message: "请输入新密码" },
+              requiredRule("请输入新密码"),
               { min: 6, message: "至少 6 位" },
             ]}
           >

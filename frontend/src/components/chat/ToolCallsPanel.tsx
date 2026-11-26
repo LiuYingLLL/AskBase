@@ -20,7 +20,7 @@ const ToolCallsPanel: React.FC<ToolCallsPanelProps> = ({ toolCalls }) => {
     key: String(idx),
     label: (
       <Space size="small">
-        <ToolOutlined style={{ color: "#0F766E" }} />
+        <ToolOutlined style={{ color: "var(--color-icon-tool)" }} />
         <Text strong>{tool.name}</Text>
       </Space>
     ),

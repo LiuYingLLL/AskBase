@@ -42,9 +42,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         }}
       >
         {isUser ? (
-          <UserOutlined style={{ color: "#fff", fontSize: 18 }} />
+          <UserOutlined style={{ color: "var(--color-surface)", fontSize: 18 }} />
         ) : (
-          <RobotOutlined style={{ color: "#fff", fontSize: 18 }} />
+          <RobotOutlined style={{ color: "var(--color-surface)", fontSize: 18 }} />
         )}
       </div>
 

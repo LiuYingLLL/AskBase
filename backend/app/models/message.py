@@ -2,16 +2,12 @@
 
 from sqlalchemy import String, Integer, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models._utils import now_iso
 from app.database import Base
 from typing import Optional, TYPE_CHECKING
-from datetime import datetime
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
-
-
-def _now() -> str:
-    return datetime.now().isoformat()
 
 
 class Message(Base):
@@ -33,7 +29,7 @@ class Message(Base):
     )  # JSON string for assistant messages — 工具调用留痕（刷新后仍可见）
     token_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     created_at: Mapped[str] = mapped_column(
-        String(30), nullable=False, default=_now
+        String(30), nullable=False, default=now_iso
     )
 
     # 关系
