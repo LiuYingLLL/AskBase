@@ -45,6 +45,8 @@ report.html
 .scratch/
 
 # 测试代码只在本地保留，不随仓库分发
+# 集中目录见 local-tests/README.md
+local-tests/
 backend/tests/
 frontend/src/**/*.test.ts
 frontend/src/**/*.test.tsx

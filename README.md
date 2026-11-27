@@ -239,7 +239,6 @@ npm run dev
 │   │   ├── services/       # 业务逻辑（含用量采集 usage_service）
 │   │   └── core/           # 安全与依赖
 │   ├── scripts/            # init_all.py 建库、smoke.py 冒烟、accept_*.py 真实链路验收、eval_*.py 评测
-│   ├── tests/              # pytest 用例（仅本地保留，已 gitignore，不随仓库分发）
 │   └── data/               # SQLite 运行时数据（已 gitignore，不入库）
 ├── frontend/               # React 前端
 │   └── src/
@@ -247,6 +246,7 @@ npm run dev
 │       ├── components/     # 可复用组件
 │       ├── store/          # Zustand 状态
 │       └── api/            # API 客户端
+├── local-tests/            # 本地测试集（仅开发机保留，已 gitignore，见该目录 README.md）
 ├── CONTEXT.md              # 领域词汇表（钉住易混概念，如问答次数 vs 模型调用次数）
 ├── docs/adr/               # 架构决策记录
 ├── docs/agents/            # 工程协作约定（issue tracker / triage / domain docs）
@@ -275,17 +275,16 @@ npm run dev
 
 ## 测试
 
-仓库不含测试代码：`backend/tests/` 与前端 `*.test.tsx` 仅在开发机本地保留（已 gitignore）。clone 下来的仓库可以直接跑应用，但没有 pytest / vitest 用例。原作者本地维护约 275 条后端用例与 52 条前端用例，覆盖检索、切分、用量、引用、鉴权等主链路。
+仓库不含测试代码：测试全部集中在开发机本地的 `local-tests/`（已 gitignore），clone 下来的仓库可以直接跑应用，但没有 pytest / vitest 用例。原作者本地维护 271 条后端用例与 52 条前端用例，覆盖检索、切分、用量、引用、鉴权等主链路。
 
-若你是在已有测试目录的开发机上，命令如下：
+若你是在已有 `local-tests/` 的开发机上，命令如下：
 
 ```bash
-# 后端（在 backend/ 下，用仓库自己的 venv）
-venv/Scripts/python.exe -m pytest tests/ -q --ignore=tests/load -m "not stress"
+# 后端（在 local-tests/backend/ 下）
+../backend/venv/Scripts/python.exe -m pytest . -q --ignore=./load -m "not stress"
 
-# 前端（在 frontend/ 下）
-npm run test -- --run
-npx tsc -b
+# 前端（在 local-tests/frontend/ 下，依赖 frontend/node_modules 的软链）
+../frontend/node_modules/.bin/vitest run --config vitest.config.ts
 ```
 
 仓库自带的 `scripts/smoke.py` 不需要测试目录，走真实 HTTP 验证主链路（存活→登录→上传→入库→检索→清理），需要先启动后端：
@@ -303,7 +302,7 @@ backend/venv/Scripts/python.exe backend/scripts/accept_citations.py  # 引用来
 
 `accept_citations.py` 依赖 `accept_usage.py` 先跑一次建出来的演示智能体。两者都会把验证用的会话留在开发库里，末尾打印会话 id 便于在页面上肉眼核对。
 
-> `tests/test_stress_rag_optimized.py` 标了 `stress`：后端没启动时自动跳过。后端在跑时它会真的发问，其中作用域用例需要开发库里存在「已入库文档的文档型知识库」，否则跳过 —— **跳过不等于通过**。
+> 本地测试集里的 `test_stress_rag_optimized.py` 标了 `stress`：后端没启动时自动跳过。后端在跑时它会真的发问，其中作用域用例需要开发库里存在「已入库文档的文档型知识库」，否则跳过 —— **跳过不等于通过**。
 
 ## 已知边界
 
