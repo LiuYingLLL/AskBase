@@ -43,3 +43,10 @@ report.html
 
 # 本地 issue tracker（spec 与工单只留在本机，不推到远端）
 .scratch/
+
+# 测试代码只在本地保留，不随仓库分发
+backend/tests/
+frontend/src/**/*.test.ts
+frontend/src/**/*.test.tsx
+frontend/src/test-setup.ts
+frontend/vitest.config.ts

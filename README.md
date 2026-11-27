@@ -11,7 +11,9 @@
 | 大语言模型 | DeepSeek / 百炼等任意 OpenAI 兼容端点（支持大模型库多模型配置与按需切换） |
 | 嵌入模型 | 阿里云百炼 text-embedding-v3（OpenAI 兼容端点） |
 | RAG 框架 | LangChain + LangChain-Community |
-| 检索增强 | Chroma 向量 + BM25 混合检索（RRF 融合）、重排（BM25 / 百炼 gte-rerank）、上下文压缩 |
+| 文档解析 | MinerU 云 API（PDF 云解析，失败自动降级本地 loader） |
+| 检索增强 | Chroma 向量 + 自建 BM25 混合检索（RRF 融合）、重排（BM25 / 百炼 gte-rerank）、上下文压缩 |
+| 切分策略 | 结构感知 + 递归两级切分（父子块），命中子块后回查完整父块 |
 | 后端框架 | FastAPI (Python) |
 | 前端框架 | React 18 + TypeScript + Vite |
 | UI 组件库 | Ant Design 5 |
@@ -30,7 +32,7 @@
 - **网页爬虫采集**：多阶段智能爬虫（规划→发现→抓取→LLM 提取→校验→聚合），支持**定时调度**、URL 规范化去重、列表页自动轮询刷新
 - **微信公众号采集**：适配公众号文章页（正文、标题、发布时间专属解析），可识别并拦截微信验证码页，避免空壳页污染数据（能力边界见下方专节）
 - **数据源管理**：MySQL 连接管理（密码加密存储）
-- **文档 RAG 问答**：TXT/MD/PDF/DOCX 上传索引，流式 SSE 回答 + 引用来源折叠展示。来源分四类：知识库片段（doc）、生成查询（sql）、库返回结果（db_result）、联网搜索到的网页（web）
+- **文档 RAG 问答**：TXT/MD/PDF/DOCX 上传索引，流式 SSE 回答 + 引用来源折叠展示。PDF 走 MinerU 云解析，按 Markdown 标题切父块、块内递归切子块，检索命中子块后回查完整父块，兼顾检索精度与条款完整性。来源分四类：知识库片段（doc）、生成查询（sql）、库返回结果（db_result）、联网搜索到的网页（web）
 - **引用来源可信**：正文里的 `[来源N]` 与来源面板里的「来源N」共用一套编号（编号 = 在来源列表中的位置，知识库来源在前、网页来源在后）。所有来源各有标题可读，网页来源带可点击链接；工具调用过程随消息留痕，刷新页面后仍可查看
 - **用量统计**：管理员可按时间范围与智能体查看真实 token 消耗、问答次数、模型调用次数，含日/月/年趋势图与按智能体明细排行
 - **管理员后台**：知识库/智能体/大模型/工具/数据源/爬虫/用户/用量统计管理
@@ -103,6 +105,9 @@
 
 ## 近期主要更新
 
+- **父子块切分**：MinerU 把 PDF 转成带标题层级的 Markdown，按标题切父块存库、块内递归切子块存向量库，检索命中子块后回查完整父块。加入中文编号层级修复（应对 MinerU 拍平标题）、表格整块保护、无结构超大文档拒绝入库；`PARENT_CHUNK_ENABLED=false` 可一键回退到单级切分
+- **PDF 走 MinerU 云 API**：异步上传→轮询→取回 Markdown，token 失效或解析失败自动降级本地 loader。需要在 `backend/.env` 配 `MINERU_API_TOKEN`（token 90 天有效，到期需重建）
+- **向量索引稳定性**：修复 Chroma 索引损坏导致检索静默返回空的问题；新增索引健康探测，重建索引时若探测到损坏会先重建集合。依赖钉 `posthog<4`，规避 chromadb 0.5.x 与新版 posthog 的签名冲突
 - **Token 用量统计模块**：新增只增不改的用量流水表与管理员统计页（汇总卡 / 日·月·年趋势图 / 按智能体明细排行 / 作用域下钻），6 处埋点覆盖主回答、工具轮、查询改写、上下文压缩、Text-to-SQL 与智能体配置测试；报表只统计模型服务确认的真实用量，估算与失败调用落库但不进统计
 - **引用来源可信化**：联网搜索找到的网页成为一等来源（标题可点、链接可点），正文 `[来源N]` 与来源面板统一编号（编号 = 在列表中的位置），工具结果里外部服务自带的 `[1][2]` 在进入模型前被改写，工具调用过程随助手消息落库、刷新页面后仍可查看
 - **智能体必须绑定模型**：去掉「系统默认」这个隐式选项，每个智能体都要显式指定所用模型
@@ -228,13 +233,13 @@ npm run dev
 │   │   ├── api/            # API 路由（认证/会话/知识库/智能体/大模型/工具/数据源/爬虫/用量统计）
 │   │   ├── crawler/        # 多智能体爬虫引擎 + 定时调度器（planner/discovery/crawler/extractor/verifier）
 │   │   ├── skills/         # 内置工具技能（handlers 实现 / registry 注册 / executor 执行循环与来源编号）
-│   │   ├── rag/            # RAG 管道（检索/混合检索/重排/上下文压缩）+ Text-to-SQL
-│   │   ├── models/         # ORM 模型
+│   │   ├── rag/            # RAG 管道（父子块切分/MinerU 解析/混合检索/重排/上下文压缩）+ Text-to-SQL
+│   │   ├── models/         # ORM 模型（含 kb_parent_chunks 父块表）
 │   │   ├── schemas/        # Pydantic 模型
 │   │   ├── services/       # 业务逻辑（含用量采集 usage_service）
 │   │   └── core/           # 安全与依赖
-│   ├── scripts/            # init_all.py 建库、accept_*.py 真实链路验收、eval_*.py 评测
-│   ├── tests/              # pytest 用例
+│   ├── scripts/            # init_all.py 建库、smoke.py 冒烟、accept_*.py 真实链路验收、eval_*.py 评测
+│   ├── tests/              # pytest 用例（仅本地保留，已 gitignore，不随仓库分发）
 │   └── data/               # SQLite 运行时数据（已 gitignore，不入库）
 ├── frontend/               # React 前端
 │   └── src/
@@ -270,13 +275,23 @@ npm run dev
 
 ## 测试
 
+仓库不含测试代码：`backend/tests/` 与前端 `*.test.tsx` 仅在开发机本地保留（已 gitignore）。clone 下来的仓库可以直接跑应用，但没有 pytest / vitest 用例。原作者本地维护约 275 条后端用例与 52 条前端用例，覆盖检索、切分、用量、引用、鉴权等主链路。
+
+若你是在已有测试目录的开发机上，命令如下：
+
 ```bash
 # 后端（在 backend/ 下，用仓库自己的 venv）
-backend/venv/Scripts/python.exe -m pytest tests/ -q --ignore=tests/load
+venv/Scripts/python.exe -m pytest tests/ -q --ignore=tests/load -m "not stress"
 
 # 前端（在 frontend/ 下）
-npm run test          # vitest
-npm run build         # 含 tsc -b 类型检查
+npm run test -- --run
+npx tsc -b
+```
+
+仓库自带的 `scripts/smoke.py` 不需要测试目录，走真实 HTTP 验证主链路（存活→登录→上传→入库→检索→清理），需要先启动后端：
+
+```bash
+venv/Scripts/python.exe scripts/smoke.py
 ```
 
 另有两个**走真实链路**的整体验收脚本，会真实调用模型与搜索引擎，需要后端已在 `:8000` 运行、且模型 Key 有余额：
